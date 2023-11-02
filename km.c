@@ -4,8 +4,8 @@
 #include <omp.h>
 #include <time.h>
 
-#define N 1000000// Number of data points
-#define K 5 // Number of clusters
+#define N 1000000  // Number of data points
+#define K 5        // Number of clusters
 #define MAX_ITER 5 // Maximum number of iterations
 
 // Structure to represent a 2D point
@@ -23,9 +23,9 @@ float distance(Point p1, Point p2)
 }
 
 // Function to assign each data point to the nearest cluster
-void assignToClusters(Point *data, Point *centroids, int *assignments, int n,int p)
+void assignToClusters(Point *data, Point *centroids, int *assignments, int n, int p)
 {
-#pragma omp parallel for if(p==1) num_threads(5)
+#pragma omp parallel for if (p == 1) num_threads(8) schedule(static, (int)(n / 8))
     for (int i = 0; i < n; i++)
     {
         float minDist = distance(data[i], centroids[0]);
@@ -52,8 +52,8 @@ void updateCentroids(Point *data, int *assignments, Point *centroids, int n, int
         centroids[i].x = 0;
         centroids[i].y = 0;
     }
-    long iter=n*n;
-    #pragma omp parallel for if(p==1) num_threads(5)
+    long iter = n;
+#pragma omp parallel for if (p == 1) num_threads(8) schedule(static, (int)(iter / 8))
     for (int i = 0; i < iter; i++)
     {
         int cluster = assignments[i];
@@ -81,14 +81,13 @@ int main()
 {
     // Generate random data points
     srand(time(NULL));
-    Point* data;
-    data=(Point*)malloc(sizeof(Point)*N);
+    Point *data;
+    data = (Point *)malloc(sizeof(Point) * N);
     for (int i = 0; i < N; i++)
     {
         data[i].x = (float)(rand() % 100) + 1;
-       
+
         data[i].y = (float)(rand() % 100) + 1;
-       
     }
 
     // Initialize cluster centroids randomly
@@ -97,8 +96,8 @@ int main()
     {
         centroids[i] = data[i];
     }
-   
- long  start, end;
+
+    long start, end;
     /* Store start time here */
     start = get_nsecs();
     // Perform k-means clustering
@@ -106,34 +105,32 @@ int main()
     for (int iter = 0; iter < MAX_ITER; iter++)
     {
         // Assign data points to clusters
-        assignToClusters(data, centroids, assignments, N,0);
+        assignToClusters(data, centroids, assignments, N, 0);
         // Update cluster centroids
         updateCentroids(data, assignments, centroids, N, 0);
     }
     // Print cluster as0signments
-   
+
     end = get_nsecs();
     /* Get the time taken by program to execute in seconds */
-    double duration = ((double)end - start)/1000000000;
+    double duration = ((double)end - start) / 1000000000;
     printf("Time taken to execute in seconds without openmp: %f\n", duration);
 
-
-   
     /* Store start time here */
     start = get_nsecs();
     // Perform k-means clustering
     for (int iter = 0; iter < MAX_ITER; iter++)
     {
         // Assign data points to clusters
-        assignToClusters(data, centroids, assignments, N,1);
+        assignToClusters(data, centroids, assignments, N, 1);
         // Update cluster centroids
         updateCentroids(data, assignments, centroids, N, 1);
     }
     // Print cluster assignments
-   
+
     end = get_nsecs();
     /* Get the time taken by program to execute in seconds */
-    duration = ((double)end - start)/1000000000;
+    duration = ((double)end - start) / 1000000000;
     printf("Time taken to execute in seconds with openmp: %f", duration);
 
     return 0;
